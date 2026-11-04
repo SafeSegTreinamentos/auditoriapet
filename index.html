@@ -62,6 +62,11 @@ nav svg{width:24px;height:24px}
 <header><h1>Auditoria de PET</h1><span id="net">—</span></header>
 
 <main>
+<div id="instBar" class="card" style="display:none;background:#e8f1f8;border:1.5px solid #1b6a9c">
+  <b style="font-size:15px">📲 Instale o app no celular</b>
+  <p class="hint" id="instTx" style="margin:6px 0 10px">Funciona sem internet e abre direto da tela inicial.</p>
+  <button class="btn" id="instBtn">Instalar app</button>
+</div>
 <!-- NOVA AUDITORIA -->
 <section id="v-nova" class="view act">
 <form id="f" class="card" novalidate>
@@ -226,6 +231,18 @@ $('#cTest').onclick=async()=>{const o=$('#cTestRes');o.textContent='Testando…'
   try{const j=await enviar(cfg(),{key:cfg().key,teste:1});
     o.textContent=j.erro==='Dados incompletos'?'✔ Conexão OK — chave aceita e script respondendo.':j.erro==='Chave inválida'?'✖ Conectou, mas a chave está diferente da do script.':'Resposta: '+JSON.stringify(j)}
   catch(e){o.textContent='✖ '+e.message}};
+/* ---------- instalação ---------- */
+let instEvt=null;
+const instalado=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEvt=e;if(!instalado()){$('#instBar').style.display='block';$('#instBtn').style.display='block'}});
+$('#instBtn').onclick=async()=>{if(!instEvt)return;instEvt.prompt();const r=await instEvt.userChoice;instEvt=null;if(r.outcome==='accepted')$('#instBar').style.display='none'};
+window.addEventListener('appinstalled',()=>{$('#instBar').style.display='none';toast('App instalado ✔')});
+setTimeout(()=>{if(!instalado()&&!instEvt){const ua=navigator.userAgent;$('#instBtn').style.display='none';
+  $('#instTx').innerHTML=/iPhone|iPad/.test(ua)?'No Safari: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>.':
+  /SamsungBrowser/.test(ua)?'No Samsung Internet: menu <b>≡</b> &gt; <b>Adicionar página a</b> &gt; <b>Tela inicial</b>. Ou abra este link no <b>Chrome</b>.':
+  /wv|FBAN|Instagram|WhatsApp/.test(ua)?'Você está num navegador interno. Toque em <b>⋮</b> &gt; <b>Abrir no Chrome</b> e instale por lá.':
+  'No Chrome: toque em <b>⋮</b> &gt; <b>Adicionar à tela inicial</b> &gt; <b>Instalar</b>.';
+  $('#instBar').style.display='block'}},2500);
 /* ---------- start ---------- */
 openDB().then(()=>{net();loadCfg();badge();sincronizar();try{$('#aud').value=localStorage.getItem('audPT')||''}catch{}});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
