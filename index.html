@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f3d5e">
+<title>Auditoria de PET</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--pri:#0f3d5e;--pri2:#1b6a9c;--ok:#1e8e3e;--nok:#c62828;--bg:#f2f4f7;--card:#fff;--tx:#1d2733;--mut:#6b7785;--bd:#d5dbe3}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:84px}
+header{background:var(--pri);color:#fff;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0}
+#net{font-size:12px;padding:4px 10px;border-radius:20px;background:#ffffff22}
+#net.on::before{content:"● ";color:#7CFC9A}#net.off::before{content:"● ";color:#ffb3b3}
+main{padding:14px;max-width:560px;margin:auto}
+.card{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 1px 3px #0001;margin-bottom:14px}
+label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:12px 0 6px}
+label:first-child{margin-top:0}
+label .req{color:var(--nok)}
+input,textarea,select{width:100%;font-size:17px;padding:12px;border:1.5px solid var(--bd);border-radius:10px;background:#fff;color:var(--tx);font-family:inherit}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--pri2)}
+select{appearance:none;-webkit-appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%236b7785' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center}
+textarea{min-height:96px;resize:vertical}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg button{padding:16px 8px;font-size:16px;font-weight:700;border-radius:12px;border:2px solid var(--bd);background:#fff;color:var(--mut)}
+.seg button.sel.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.sel.nok{background:var(--nok);border-color:var(--nok);color:#fff}
+.photo{border:2px dashed var(--bd);border-radius:12px;padding:18px;text-align:center;color:var(--mut);cursor:pointer;position:relative}
+.photo img{max-width:100%;border-radius:8px;display:block;margin:auto}
+.photo input{display:none}
+.btn{width:100%;padding:16px;font-size:17px;font-weight:700;border:0;border-radius:12px;background:var(--pri);color:#fff}
+.btn.sec{background:#fff;color:var(--pri);border:2px solid var(--pri)}
+.btn:disabled{opacity:.5}
+.err{color:var(--nok);font-size:13px;margin-top:6px;display:none}
+.inv .err{display:block}.inv input,.inv textarea,.inv select,.inv .photo,.inv .seg button{border-color:var(--nok)}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bd);display:grid;grid-template-columns:repeat(3,1fr);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{background:none;border:0;padding:10px 0 12px;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button.act{color:var(--pri);font-weight:700}
+nav svg{width:24px;height:24px}
+.badge{background:var(--nok);color:#fff;border-radius:10px;font-size:11px;padding:0 6px;margin-left:4px}
+.view{display:none}.view.act{display:block}
+.item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--bd)}
+.item:last-child{border-bottom:0}
+.item img{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:none;background:#eee}
+.item .t{flex:1;min-width:0}.item b{font-size:15px}
+.item small{display:block;color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;flex:none}
+.tag.ok{background:#e3f4e8;color:var(--ok)}.tag.nok{background:#fde7e7;color:var(--nok)}
+.st{font-size:11px;color:var(--mut)}.st.p{color:#b26a00}
+.row{display:flex;gap:10px}.row>*{flex:1}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:#1d2733;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:9;max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty{text-align:center;color:var(--mut);padding:24px 0}
+.hint{font-size:13px;color:var(--mut);line-height:1.45}
+</style>
+</head>
+<body>
+<header><h1>Auditoria de PET</h1><span id="net">—</span></header>
+
+<main>
+<!-- NOVA AUDITORIA -->
+<section id="v-nova" class="view act">
+<form id="f" class="card" novalidate>
+  <div class="fld" data-k="pt"><label>Nº da PET <span class="req">*</span></label>
+    <input id="pt" inputmode="numeric" autocomplete="off"><div class="err">Informe o número da PET</div></div>
+  <div class="fld" data-k="data"><label>Data da auditoria <span class="req">*</span></label>
+    <input id="data" type="date"><div class="err">Informe a data</div></div>
+  <div class="fld" data-k="aud"><label>Auditor (quem fez a auditoria) <span class="req">*</span></label>
+    <select id="aud"><option value="">Selecione…</option><option>Deverson</option><option>Jaqueline</option><option>Juliana</option><option>Leandro</option><option>Luamar</option><option>Luciana</option><option>Silvana</option></select>
+    <div class="err">Selecione o auditor</div></div>
+  <div class="row">
+    <div class="fld" data-k="req"><label>ID requisitante <span class="req">*</span></label>
+      <input id="req" autocomplete="off"><div class="err">Obrigatório</div></div>
+    <div class="fld" data-k="apr"><label>ID aprovador <span class="req">*</span></label>
+      <input id="apr" autocomplete="off"><div class="err">Obrigatório</div></div>
+  </div>
+  <div class="fld" data-k="res"><label>Resultado <span class="req">*</span></label>
+    <div class="seg"><button type="button" class="ok" data-v="CONFORME">✔ Conforme</button><button type="button" class="nok" data-v="NÃO CONFORME">✖ Não conforme</button></div>
+    <div class="err">Selecione o resultado</div></div>
+  <div class="fld" data-k="obs"><label>Observação <span class="req" id="obsReq" style="display:none">*</span></label>
+    <textarea id="obs" placeholder="Descreva o que não estava conforme"></textarea><div class="err">Descreva a não conformidade</div></div>
+  <div class="fld" data-k="foto"><label>Foto da PET <span class="req">*</span></label>
+    <div class="photo" id="ph"><span id="phTx">📷 Toque para tirar a foto</span>
+      <input id="cam" type="file" accept="image/*" capture="environment"></div>
+    <div class="err">A foto é obrigatória</div></div>
+</form>
+<button class="btn" id="salvar">Salvar auditoria</button>
+</section>
+
+<!-- HISTÓRICO -->
+<section id="v-hist" class="view">
+  <div class="card"><div class="row"><button class="btn sec" id="sync">⟳ Sincronizar</button><button class="btn sec" id="csv">⬇ CSV</button></div>
+  <p class="hint" id="syncInfo" style="margin:10px 0 0"></p></div>
+  <div class="card" id="lista"></div>
+</section>
+
+<!-- CONFIG -->
+<section id="v-cfg" class="view">
+  <div class="card">
+    <label>URL de sincronização (Apps Script)</label><input id="cUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    <label>Chave de acesso</label><input id="cKey" placeholder="mesma chave definida no script">
+    <p class="hint">Esses dados ficam salvos só neste aparelho. URL e chave já vêm preenchidas; só altere se o responsável pedir.</p>
+    <button class="btn" id="cSave" style="margin-top:8px">Salvar configuração</button>
+  </div>
+  <div class="card"><p class="hint" style="margin:0">Registros já sincronizados com mais de 30 dias são apagados do aparelho automaticamente para liberar espaço. Pendentes nunca são apagados.</p></div>
+</section>
+</main>
+
+<nav>
+  <button data-v="nova" class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Nova</button>
+  <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Auditorias<span id="bdg"></span></span></button>
+  <button data-v="cfg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Config.</button>
+</nav>
+<div id="toast"></div>
+
+<script>
+/* ---------- IndexedDB ---------- */
+const DB='auditoriaPT',ST='aud';
+let db;
+function openDB(){return new Promise((ok,er)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(ST,{keyPath:'id'});r.onsuccess=()=>{db=r.result;ok()};r.onerror=()=>er(r.error)})}
+const tx=(m)=>db.transaction(ST,m).objectStore(ST);
+const put=o=>new Promise((ok,er)=>{const r=tx('readwrite').put(o);r.onsuccess=ok;r.onerror=()=>er(r.error)});
+const del=id=>new Promise(ok=>{tx('readwrite').delete(id).onsuccess=ok});
+const all=()=>new Promise(ok=>{const r=tx('readonly').getAll();r.onsuccess=()=>ok(r.result.sort((a,b)=>b.criado-a.criado))});
+
+/* ---------- utilidades ---------- */
+const $=s=>document.querySelector(s);
+const PADRAO={url:'https://script.google.com/macros/s/AKfycbyVYjTTvSL0TFmwk1JcTbvdPjHztTQrPdSKJvBpYjfer2V2eiSlWF2c73PaMI4Ocg/exec',key:'Pet2026Mbrf'};
+const cfg=()=>{const c=JSON.parse(localStorage.getItem('cfgPT')||'{}');return {...PADRAO,...Object.fromEntries(Object.entries(c).filter(([k,v])=>v))}};
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600)}
+const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
+const hoje=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
+const fmtD=s=>s.split('-').reverse().join('/');
+
+/* comprime a foto para ~1280px JPEG (leve para enviar com sinal fraco) */
+function comprimir(file){return new Promise((ok,er)=>{const img=new Image();img.onload=()=>{const M=1280;let w=img.width,h=img.height;if(w>M||h>M){const k=M/Math.max(w,h);w=Math.round(w*k);h=Math.round(h*k)}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(img.src);ok(c.toDataURL('image/jpeg',.72))};img.onerror=er;img.src=URL.createObjectURL(file)})}
+
+/* ---------- navegação ---------- */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('act',x===b));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('act',v.id==='v-'+b.dataset.v));if(b.dataset.v==='hist')render()});
+
+/* ---------- formulário ---------- */
+let resultado='',foto='';
+$('#data').value=hoje();
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{resultado=b.dataset.v;document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('sel',x===b));$('#obsReq').style.display=resultado==='NÃO CONFORME'?'inline':'none';b.closest('.fld').classList.remove('inv')});
+$('#ph').onclick=e=>{if(e.target.id!=='cam')$('#cam').click()};
+const CAM='<input id="cam" type="file" accept="image/*" capture="environment">';
+async function onCam(e){const f=e.target.files[0];if(!f)return;try{foto=await comprimir(f);$('#ph').innerHTML='<img src="'+foto+'">'+CAM+'<div class="hint" style="margin-top:8px">Toque para refazer a foto</div>';$('#cam').onchange=onCam;$('#ph').closest('.fld').classList.remove('inv')}catch{toast('Não foi possível ler a foto')}}
+$('#cam').onchange=onCam;
+document.querySelectorAll('#f input:not([type=file]),#f textarea,#f select').forEach(i=>i.oninput=i.onchange=()=>i.closest('.fld').classList.remove('inv'));
+
+$('#salvar').onclick=async()=>{
+  const v={pt:$('#pt').value.trim(),data:$('#data').value,auditor:$('#aud').value,req:$('#req').value.trim(),apr:$('#apr').value.trim(),obs:$('#obs').value.trim()};
+  const bad=[];
+  if(!v.pt)bad.push('pt');if(!v.data)bad.push('data');if(!v.auditor)bad.push('aud');if(!v.req)bad.push('req');if(!v.apr)bad.push('apr');
+  if(!resultado)bad.push('res');if(resultado==='NÃO CONFORME'&&!v.obs)bad.push('obs');if(!foto)bad.push('foto');
+  document.querySelectorAll('.fld').forEach(f=>f.classList.toggle('inv',bad.includes(f.dataset.k)));
+  if(bad.length){document.querySelector('.fld.inv').scrollIntoView({behavior:'smooth',block:'center'});toast('Preencha os campos obrigatórios');return}
+  try{localStorage.setItem('audPT',v.auditor)}catch{}
+  const rec={id:uid(),...v,resultado,foto,criado:Date.now(),sync:0};
+  await put(rec);
+  resetForm();toast('Auditoria salva ✔');badge();sincronizar();
+};
+function resetForm(){const a=$('#aud').value;$('#f').reset();$('#data').value=hoje();$('#aud').value=a;resultado='';foto='';document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('sel'));$('#obsReq').style.display='none';$('#ph').innerHTML='<span id="phTx">📷 Toque para tirar a foto</span>'+CAM;$('#cam').onchange=onCam;scrollTo(0,0)}
+
+/* ---------- histórico ---------- */
+async function render(){
+  const L=await all(),el=$('#lista');
+  if(!L.length){el.innerHTML='<div class="empty">Nenhuma auditoria ainda</div>';return}
+  el.innerHTML=L.map(r=>`<div class="item"><img src="${r.foto||''}" alt=""><div class="t"><b>PET ${esc(r.pt)}</b><small>${fmtD(r.data)} · ${esc(r.auditor||'')} · Req ${esc(r.req)} · Apr ${esc(r.apr)}</small><span class="st ${r.sync?'':'p'}">${r.sync?'✔ Sincronizada':'⏳ Pendente'}</span></div><span class="tag ${r.resultado==='CONFORME'?'ok':'nok'}">${r.resultado==='CONFORME'?'C':'NC'}</span></div>`).join('');
+  const p=L.filter(r=>!r.sync).length;
+  $('#syncInfo').textContent=p?`${p} pendente(s) de envio.`:'Tudo sincronizado.';
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function badge(){const p=(await all()).filter(r=>!r.sync).length;$('#bdg').innerHTML=p?`<span class="badge">${p}</span>`:''}
+
+/* ---------- sincronização ---------- */
+let syncing=false;
+async function sincronizar(manual){
+  if(syncing)return;const c=cfg();
+  if(!c.url){if(manual)toast('Configure a URL de sincronização');return}
+  if(!navigator.onLine){if(manual)toast('Sem internet — fica pendente');return}
+  syncing=true;let n=0,falha=0;
+  for(const r of (await all()).filter(r=>!r.sync)){
+    try{
+      const res=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:c.key||'',...r,foto:r.foto,criado:new Date(r.criado).toISOString()})});
+      const j=await res.json();
+      if(j.ok){r.sync=Date.now();await put(r);n++}else{falha++;if(j.erro)toast('Erro: '+j.erro)}
+    }catch(e){falha++;break}
+  }
+  syncing=false;badge();if($('#v-hist').classList.contains('act'))render();
+  if(n)toast(`${n} auditoria(s) enviada(s) ✔`);else if(manual&&!falha)toast('Nada pendente');else if(manual&&falha)toast('Falha ao enviar — tenta de novo depois');
+  limpar();
+}
+async function limpar(){const lim=Date.now()-30*864e5;for(const r of await all())if(r.sync&&r.sync<lim)await del(r.id)}
+$('#sync').onclick=()=>sincronizar(true);
+window.addEventListener('online',()=>{net();sincronizar()});
+window.addEventListener('offline',net);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)sincronizar()});
+setInterval(()=>sincronizar(),120000);
+function net(){const o=navigator.onLine;$('#net').className=o?'on':'off';$('#net').textContent=o?'Online':'Offline'}
+
+/* ---------- CSV (backup manual) ---------- */
+$('#csv').onclick=async()=>{const L=await all();if(!L.length)return toast('Nada para exportar');
+  const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+  const csv='\ufeff'+['Nº PET;Data;ID Requisitante;ID Aprovador;Resultado;Observação;Auditor;Sincronizada',...L.map(r=>[r.pt,fmtD(r.data),r.req,r.apr,r.resultado,r.obs,r.auditor,r.sync?'Sim':'Não'].map(q).join(';'))].join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='auditorias-pet-'+hoje()+'.csv';a.click()};
+
+/* ---------- config ---------- */
+function loadCfg(){const c=cfg();$('#cUrl').value=c.url||'';$('#cKey').value=c.key||''}
+$('#cSave').onclick=()=>{localStorage.setItem('cfgPT',JSON.stringify({url:$('#cUrl').value.trim(),key:$('#cKey').value.trim()}));toast('Configuração salva');sincronizar(true)};
+
+/* ---------- start ---------- */
+openDB().then(()=>{net();loadCfg();badge();sincronizar();try{$('#aud').value=localStorage.getItem('audPT')||''}catch{}});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+</script>
+</body>
+</html>
