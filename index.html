@@ -105,6 +105,8 @@ nav svg{width:24px;height:24px}
     <label>Chave de acesso</label><input id="cKey" placeholder="mesma chave definida no script">
     <p class="hint">Esses dados ficam salvos só neste aparelho. URL e chave já vêm preenchidas; só altere se o responsável pedir.</p>
     <button class="btn" id="cSave" style="margin-top:8px">Salvar configuração</button>
+    <button class="btn sec" id="cTest" style="margin-top:10px">Testar conexão</button>
+    <p class="hint" id="cTestRes" style="word-break:break-word"></p>
   </div>
   <div class="card"><p class="hint" style="margin:0">Registros já sincronizados com mais de 30 dias são apagados do aparelho automaticamente para liberar espaço. Pendentes nunca são apagados.</p></div>
 </section>
@@ -178,7 +180,14 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 async function badge(){const p=(await all()).filter(r=>!r.sync).length;$('#bdg').innerHTML=p?`<span class="badge">${p}</span>`:''}
 
 /* ---------- sincronização ---------- */
-let syncing=false;
+let syncing=false,ultimoErro='';
+async function enviar(c,obj){
+  let res;
+  try{res=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(obj),redirect:'follow'})}
+  catch(e){throw new Error('Sem resposta do servidor ('+(e.message||e)+')')}
+  const txt=await res.text();
+  try{return JSON.parse(txt)}catch{throw new Error('HTTP '+res.status+' — '+txt.replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160))}
+}
 async function sincronizar(manual){
   if(syncing)return;const c=cfg();
   if(!c.url){if(manual)toast('Configure a URL de sincronização');return}
@@ -186,13 +195,13 @@ async function sincronizar(manual){
   syncing=true;let n=0,falha=0;
   for(const r of (await all()).filter(r=>!r.sync)){
     try{
-      const res=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:c.key||'',...r,foto:r.foto,criado:new Date(r.criado).toISOString()})});
-      const j=await res.json();
+      const j=await enviar(c,{key:c.key||'',...r,criado:new Date(r.criado).toISOString()});
       if(j.ok){r.sync=Date.now();await put(r);n++}else{falha++;if(j.erro)toast('Erro: '+j.erro)}
-    }catch(e){falha++;break}
+    }catch(e){falha++;ultimoErro=e.message||String(e);break}
   }
   syncing=false;badge();if($('#v-hist').classList.contains('act'))render();
-  if(n)toast(`${n} auditoria(s) enviada(s) ✔`);else if(manual&&!falha)toast('Nada pendente');else if(manual&&falha)toast('Falha ao enviar — tenta de novo depois');
+  if(n)toast(`${n} auditoria(s) enviada(s) ✔`);else if(manual&&!falha)toast('Nada pendente');else if(manual&&falha)toast('Falha: '+(ultimoErro||'erro desconhecido'));
+  if(falha&&ultimoErro){const si=$('#syncInfo');if(si)si.textContent='Último erro: '+ultimoErro}
   limpar();
 }
 async function limpar(){const lim=Date.now()-30*864e5;for(const r of await all())if(r.sync&&r.sync<lim)await del(r.id)}
@@ -213,6 +222,10 @@ $('#csv').onclick=async()=>{const L=await all();if(!L.length)return toast('Nada 
 function loadCfg(){const c=cfg();$('#cUrl').value=c.url||'';$('#cKey').value=c.key||''}
 $('#cSave').onclick=()=>{localStorage.setItem('cfgPT',JSON.stringify({url:$('#cUrl').value.trim(),key:$('#cKey').value.trim()}));toast('Configuração salva');sincronizar(true)};
 
+$('#cTest').onclick=async()=>{const o=$('#cTestRes');o.textContent='Testando…';
+  try{const j=await enviar(cfg(),{key:cfg().key,teste:1});
+    o.textContent=j.erro==='Dados incompletos'?'✔ Conexão OK — chave aceita e script respondendo.':j.erro==='Chave inválida'?'✖ Conectou, mas a chave está diferente da do script.':'Resposta: '+JSON.stringify(j)}
+  catch(e){o.textContent='✖ '+e.message}};
 /* ---------- start ---------- */
 openDB().then(()=>{net();loadCfg();badge();sincronizar();try{$('#aud').value=localStorage.getItem('audPT')||''}catch{}});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
