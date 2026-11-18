@@ -188,8 +188,10 @@ async function badge(){const p=(await all()).filter(r=>!r.sync).length;$('#bdg')
 let syncing=false,ultimoErro='';
 async function enviar(c,obj){
   let res;
-  try{res=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(obj),redirect:'follow'})}
-  catch(e){throw new Error('Sem resposta do servidor ('+(e.message||e)+')')}
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),45000);
+  try{res=await fetch(c.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(obj),redirect:'follow',signal:ctl.signal})}
+  catch(e){throw new Error(e.name==='AbortError'?'Sinal fraco — o envio demorou demais, fica pendente':'Sem resposta do servidor ('+(e.message||e)+')')}
+  finally{clearTimeout(tm)}
   const txt=await res.text();
   try{return JSON.parse(txt)}catch{throw new Error('HTTP '+res.status+' — '+txt.replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,160))}
 }
